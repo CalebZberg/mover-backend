@@ -1,3 +1,4 @@
 [
-    { "username": "test", "password": "xxx" }
+    { "username": "test",            "password": "xxx"     },
+    { "username": "test@example.com","password": "hunter2" }
 ]

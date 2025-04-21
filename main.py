@@ -1,5 +1,11 @@
 # main.py
 
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+MAPS_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers.auth_router import router as auth_router
