@@ -1,5 +1,3 @@
-# routers/quote_router.py
-
 from fastapi import APIRouter
 from pydantic import BaseModel
 from services.quote import calculate_quote
@@ -16,26 +14,31 @@ class QuoteRequest(BaseModel):
 
 @router.post("/")
 def create_quote(req: QuoteRequest):
-    dist_text, estimate = calculate_quote(req.origin, req.destination)
+    # Calculate quote
+    distance_text, estimate = calculate_quote(req.origin, req.destination)
 
-    conn = get_conn()
-    conn.execute(text("""
-        INSERT INTO quotes (origin, destination, date, inventory, distance, estimate)
-        VALUES (:origin, :destination, :date, :inventory, :distance, :estimate)
-    """), {
-        "origin": req.origin,
-        "destination": req.destination,
-        "date": req.date,
-        "inventory": req.inventory,
-        "distance": dist_text,
-        "estimate": estimate
-    })
+    # Save to DB
+    with get_conn().connect() as conn:
+        insert_sql = text("""
+            INSERT INTO quotes (origin, destination, date, inventory, distance, estimate)
+            VALUES (:origin, :destination, :date, :inventory, :distance, :estimate)
+        """)
+        conn.execute(insert_sql, {
+            "origin": req.origin,
+            "destination": req.destination,
+            "date": req.date,
+            "inventory": req.inventory,
+            "distance": distance_text,
+            "estimate": estimate
+        })
+        conn.commit()
 
+    # Return to frontend
     return {
         "origin": req.origin,
         "destination": req.destination,
         "date": req.date,
         "inventory": req.inventory,
-        "distance": dist_text,
+        "distance": distance_text,
         "estimate": estimate
     }
