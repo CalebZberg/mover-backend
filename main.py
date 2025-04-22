@@ -5,7 +5,7 @@ import os
 
 load_dotenv()
 MAPS_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
-DATABASE_URL = os.getenv("DATABASE_URL")  # ← you’ll also want to use this in your repo
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,23 +18,20 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# === CORS setup ===
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000", 
-        "https://d6smrm4wy7enb.cloudfront.net"
+      "http://localhost:3000",
+      "https://d6smrm4wy7enb.cloudfront.net"   # your production CloudFront URL
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# === Routers ===
 app.include_router(auth_router)
 app.include_router(quote_router)
 
-# === Root health check ===
 @app.get("/")
 def read_root():
     return {"message": "API is running"}
