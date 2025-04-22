@@ -1,26 +1,34 @@
 # routers/quote_router.py
-
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from repositories.json_repository import JSONRepository
+from services.db import get_conn
 from services.distance_service import calculate_quote
 
 class QuoteRequest(BaseModel):
     origin: str
     destination: str
-    date: str | None = None
-    inventory: str | None = None
+    date: str  # or date
+    inventory: str
 
-class QuoteResponse(BaseModel):
-    distance: str
-    estimate: float
+router = APIRouter(prefix="/quote")
 
-router = APIRouter(prefix="/quote", tags=["quote"])
-quote_repo = JSONRepository("data/quotes.json")
+@router.post("/", status_code=201)
+async def create_quote(req: QuoteRequest, conn=Depends(get_conn)):
+    dist_text, estimate = calculate_quote(req.origin, req.destination)
 
-@router.post("/", response_model=QuoteResponse)
-def create_quote(req: QuoteRequest):
-    estimate = calculate_quote(req.origin, req.destination)
-    # Persist a record of this quote
-    quote_repo.add(QuoteResponse(distance="n/a", estimate=estimate))
-    return QuoteResponse(distance="n/a", estimate=estimate)
+    result = conn.execute(text(
+        "INSERT INTO quotes (origin, destination, date, inventory, distance, estimate) "
+        "VALUES (:o, :d, :dt, :inv, :dist, :est) "
+        "RETURNING id"
+    ), {
+        "o": req.origin,
+        "d": req.destination,
+        "dt": req.date,
+        "inv": req.inventory,
+        "dist": dist_text,
+        "est": estimate,
+    })
+    new_id = result.scalar_one()
+    conn.commit()
+
+    return {"id": new_id, "distance": dist_text, "estimate": estimate}
