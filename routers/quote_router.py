@@ -1,8 +1,8 @@
 # routers/quote_router.py
-
 from fastapi import APIRouter
 from pydantic import BaseModel
-from repositories.json_repository import JSONRepository
+from sqlalchemy import insert, select
+from database import SessionLocal, quotes
 from services.distance_service import calculate_quote
 
 class QuoteRequest(BaseModel):
@@ -16,16 +16,30 @@ class QuoteResponse(BaseModel):
     estimate: float
 
 router = APIRouter(prefix="/quote", tags=["quote"])
-quote_repo = JSONRepository("data/quotes.json")
 
 @router.post("/", response_model=QuoteResponse)
 def create_quote(req: QuoteRequest):
-    # 1) Call Google + compute estimate
     distance_text, estimate = calculate_quote(req.origin, req.destination)
 
-    # 2) Persist the quote (saving both fields)
-    quote = QuoteResponse(distance=distance_text, estimate=estimate)
-    quote_repo.add(quote)
+    # persist to RDS
+    with SessionLocal() as db:
+        stmt = insert(quotes).values(
+            origin=req.origin,
+            destination=req.destination,
+            date=req.date,
+            inventory=req.inventory,
+            distance=distance_text,
+            estimate=estimate,
+        )
+        db.execute(stmt)
+        db.commit()
 
-    # 3) Return the real, google-backed quote
-    return quote
+    return QuoteResponse(distance=distance_text, estimate=estimate)
+
+@router.get("/", response_model=list[QuoteResponse])
+def list_quotes():
+    with SessionLocal() as db:
+        stmt = select(quotes.c.distance, quotes.c.estimate)
+        rows = db.execute(stmt).all()
+
+    return [QuoteResponse(distance=r.distance, estimate=r.estimate) for r in rows]

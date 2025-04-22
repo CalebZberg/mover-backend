@@ -1,5 +1,4 @@
 # main.py
-
 from dotenv import load_dotenv
 import os
 
@@ -20,7 +19,10 @@ app = FastAPI(
 # === CORS setup ===
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # your React dev server
+    allow_origins=[
+        "http://localhost:3000",
+        "https://d6smrm4wy7enb.cloudfront.net"   # your actual CloudFront domain
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

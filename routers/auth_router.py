@@ -1,21 +1,22 @@
 # routers/auth_router.py
-
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from repositories.json_repository import JSONRepository
+from sqlalchemy import select
+from database import SessionLocal, users
 
-# Define your User model here (or import from models.py)
-class User(BaseModel):
+class LoginRequest(BaseModel):
     username: str
     password: str
 
-router = APIRouter(prefix="/auth", tags=["auth"])
-user_repo = JSONRepository("data/users.json")
+router = APIRouter()
 
-@router.post("/login")
-def login(user: User):
-    users = user_repo.list(User)
-    # Stub: succeed if any user in JSON matches username
-    if any(u.username == user.username for u in users):
-        return {"success": True, "username": user.username}
-    raise HTTPException(status_code=401, detail="Invalid credentials")
+@router.post("/auth/login")
+def login(req: LoginRequest):
+    with SessionLocal() as db:
+        stmt = select(users.c.password).where(users.c.username == req.username)
+        stored = db.execute(stmt).scalar_one_or_none()
+
+    if not stored or stored != req.password:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    return {"success": True, "username": req.username}
