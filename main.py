@@ -1,9 +1,11 @@
 # main.py
+
 from dotenv import load_dotenv
 import os
 
 load_dotenv()
 MAPS_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
+DATABASE_URL = os.getenv("DATABASE_URL")  # ← you’ll also want to use this in your repo
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,8 +22,8 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",
-        "https://d6smrm4wy7enb.cloudfront.net"   # your actual CloudFront domain
+        "http://localhost:3000", 
+        "https://d6smrm4wy7enb.cloudfront.net"
     ],
     allow_credentials=True,
     allow_methods=["*"],
