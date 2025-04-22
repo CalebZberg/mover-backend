@@ -1,34 +1,34 @@
 # routers/quote_router.py
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel
+from services.quote import calculate_quote
 from services.db import get_conn
-from services.distance_service import calculate_quote
+
+router = APIRouter(prefix="/quote")
 
 class QuoteRequest(BaseModel):
     origin: str
     destination: str
-    date: str  # or date
+    date: str
     inventory: str
 
-router = APIRouter(prefix="/quote")
-
-@router.post("/", status_code=201)
-async def create_quote(req: QuoteRequest, conn=Depends(get_conn)):
+@router.post("/")
+def create_quote(req: QuoteRequest):
     dist_text, estimate = calculate_quote(req.origin, req.destination)
 
-    result = conn.execute(text(
-        "INSERT INTO quotes (origin, destination, date, inventory, distance, estimate) "
-        "VALUES (:o, :d, :dt, :inv, :dist, :est) "
-        "RETURNING id"
-    ), {
-        "o": req.origin,
-        "d": req.destination,
-        "dt": req.date,
-        "inv": req.inventory,
-        "dist": dist_text,
-        "est": estimate,
-    })
-    new_id = result.scalar_one()
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO quotes (origin, destination, date, inventory, distance, estimate)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        RETURNING id;
+        """,
+        (req.origin, req.destination, req.date, req.inventory, dist_text, estimate)
+    )
     conn.commit()
+    new_id = cur.fetchone()[0]
+    cur.close()
+    conn.close()
 
     return {"id": new_id, "distance": dist_text, "estimate": estimate}
