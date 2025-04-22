@@ -18,12 +18,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# === BROAD CORS (for debugging) ===
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-      "http://localhost:3000",
-      "https://d6smrm4wy7enb.cloudfront.net"   # your production CloudFront URL
-    ],
+    allow_origins=["*"],          # allow any origin
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
