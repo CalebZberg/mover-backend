@@ -1,5 +1,3 @@
-# models.py
-
 from pydantic import BaseModel
 
 class QuoteRequest(BaseModel):
@@ -7,3 +5,7 @@ class QuoteRequest(BaseModel):
     destination: str
     date: str
     inventory: str
+
+class QuoteResponse(QuoteRequest):
+    distance: str
+    estimate: float
